@@ -1,5 +1,6 @@
 #include <ESP8266WiFi.h>
 
+// Make sure to add your own information
 const char* SSID = "********";
 const char* PASS = "********";
 
@@ -18,11 +19,12 @@ void setup(void)
   Serial.println(SSID);
 }
 
-void loop(void){
+void loop(void)
+{
   Serial.println("");
   Serial.print("Wemos IP : ");
   Serial.println(WiFi.localIP());
-  Serial.print("Wemos IP : ");
+  Serial.print("Wemos MAC Address : ");
   Serial.println(WiFi.macAddress());
   Serial.print("WIFI Mode : ");  
   Serial.println(WiFi.getMode());
