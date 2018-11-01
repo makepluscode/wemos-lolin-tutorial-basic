@@ -10,9 +10,9 @@ WiFiClient serverClient;
 void setup(void)
 {
   Serial.begin(74880);
-  WiFi.begin(SSID, PASS);
 
   WiFi.mode(WIFI_STA);
+  WiFi.begin(SSID, PASS);
 
   while (WiFi.status() != WL_CONNECTED) 
   {
@@ -34,16 +34,9 @@ void loop()
   if (server.hasClient())
   {
     serverClient = server.available();
-    String str = serverClient.readString();
+    serverClient.write("Welcomm to Wemos", 16);
 
-    if(str) 
-    {
-      Serial.println(str);
-    }
-    int size = serverClient.write("Hello!", 7);
-
-    //test
-    Serial.println("size : ");
-    Serial.println(size);
+    String str = serverClient.readStringUntil('\r');
+    Serial.println(str);
   }
 }
