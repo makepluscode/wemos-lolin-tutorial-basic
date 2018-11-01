@@ -1,79 +1,49 @@
 #include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
-#include "WiFiClient.h"
 
-const char *SSID = "WemosAP";
+// Make sure to add your own information
+const char* SSID = "****";
+const char* PASS = "****";
 
-ESP8266WebServer server(80);
+WiFiServer server(1004);
+WiFiClient serverClient;
 
-bool onoff = false;
-
-void renderRootPage()
-{
-  String s = "<br>";
-
-  if(onoff)
-  {
-    s += "<br><h1>current status is ON.</h1><br>";
-  }
-  else
-  {
-    s += "<br><h1>current status is OFF.</h1><br>";
-  }
-
-  s += "<input type=\"button\" value=\"ON\" onclick=\"location.href='/led?onoff=1'\">";
-  s += "<br><br><br><br>";
-  s += "<input type=\"button\" value=\"OFF\" onclick=\"location.href='/led?onoff=0'\">";
-
-  server.send(200, "text/html", s);
-}
-
-void controlLed()
-{
-  String param = server.arg("onoff");
-
-  if(param=="1")
-  {
-    onoff = true;
-  }
-  else if(param=="0")
-  {
-    onoff = false;
-  }
-
-  if(onoff)
-  {
-    digitalWrite(BUILTIN_LED, LOW);
-  }
-  else
-  {
-    digitalWrite(BUILTIN_LED, HIGH);
-  }
-
-  //redirect to /
-  server.sendHeader("Location", String("/"), true);
-  server.send ( 302, "text/plain", "");
-}
-
-void setup()
+void setup(void)
 {
   Serial.begin(74880);
-  WiFi.softAP(SSID);
-  IPAddress ip = WiFi.softAPIP();
+  WiFi.begin(SSID, PASS);
 
+  WiFi.mode(WIFI_STA);
+
+  while (WiFi.status() != WL_CONNECTED) 
+  {
+    delay(100);
+    Serial.print(".");
+  }
+  
   Serial.println("");
-  Serial.print("WemosAP's IP : ");
-  Serial.println(ip);
-
-  server.on("/", renderRootPage);
-  server.on("/led", controlLed);
+  Serial.println("Connected!");
+  Serial.print("Wemos IP : ");
+  Serial.println(WiFi.localIP());
 
   server.begin();
-
-  pinMode(BUILTIN_LED, OUTPUT);
+  server.setNoDelay(true);
 }
 
 void loop()
 {
-  server.handleClient();
+  if (server.hasClient())
+  {
+    serverClient = server.available();
+    String str = serverClient.readString();
+
+    if(str) 
+    {
+      Serial.println(str);
+    }
+    int size = serverClient.write("Hello!", 7);
+
+    //test
+    Serial.println("size : ");
+    Serial.println(size);
+  }
 }
