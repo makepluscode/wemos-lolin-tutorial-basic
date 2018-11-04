@@ -1,79 +1,55 @@
+#include <Arduino.h>
+
 #include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
-#include "WiFiClient.h"
+#include <WiFiUdp.h>
 
-const char *SSID = "WemosAP";
+WiFiUDP udp;
 
-ESP8266WebServer server(80);
+const char *SSID = "CherryBongBong-Home";
+const char *PASS = "hahaha123!";
 
-bool onoff = false;
-
-void renderRootPage()
-{
-  String s = "<br>";
-
-  if(onoff)
-  {
-    s += "<br><h1>current status is ON.</h1><br>";
-  }
-  else
-  {
-    s += "<br><h1>current status is OFF.</h1><br>";
-  }
-
-  s += "<input type=\"button\" value=\"ON\" onclick=\"location.href='/led?onoff=1'\">";
-  s += "<br><br><br><br>";
-  s += "<input type=\"button\" value=\"OFF\" onclick=\"location.href='/led?onoff=0'\">";
-
-  server.send(200, "text/html", s);
-}
-
-void controlLed()
-{
-  String param = server.arg("onoff");
-
-  if(param=="1")
-  {
-    onoff = true;
-  }
-  else if(param=="0")
-  {
-    onoff = false;
-  }
-
-  if(onoff)
-  {
-    digitalWrite(BUILTIN_LED, LOW);
-  }
-  else
-  {
-    digitalWrite(BUILTIN_LED, HIGH);
-  }
-
-  //redirect to /
-  server.sendHeader("Location", String("/"), true);
-  server.send ( 302, "text/plain", "");
-}
+unsigned int localUdpPort = 4210;  // local port to listen on
+char incomingPacket[255];  // buffer for incoming packets
+char  replyPacket[] = "Hi there! Got the message :-)";  // a reply string to send back
 
 void setup()
-{
+{ 
   Serial.begin(74880);
-  WiFi.softAP(SSID);
-  IPAddress ip = WiFi.softAPIP();
 
+  WiFi.begin(SSID, PASS);
+
+  while(WiFi.status() != WL_CONNECTED)
+  {
+    delay(100);
+    Serial.print(".");
+  }
+  Serial.println("Connected!");
+
+  Serial.println("[NETWORK]");
+  Serial.println(WiFi.localIP());
+  Serial.println(WiFi.macAddress());
   Serial.println("");
-  Serial.print("WemosAP's IP : ");
-  Serial.println(ip);
 
-  server.on("/", renderRootPage);
-  server.on("/led", controlLed);
-
-  server.begin();
-
-  pinMode(BUILTIN_LED, OUTPUT);
+  udp.begin(1004);
 }
 
 void loop()
 {
-  server.handleClient();
+  int packetSize = udp.parsePacket();
+  if (packetSize)
+  {
+    // receive incoming UDP packets
+    Serial.printf("Received %d bytes from %s, port %d\n", packetSize, udp.remoteIP().toString().c_str(), udp.remotePort());
+    int len = udp.read(incomingPacket, 255);
+    if (len > 0)
+    {
+      incomingPacket[len] = 0;
+    }
+    Serial.printf("UDP packet contents: %s\n", incomingPacket);
+
+    // send back a reply, to the IP address and port we got the packet from
+    udp.beginPacket(udp.remoteIP(), udp.remotePort());
+    udp.write(replyPacket);
+    udp.endPacket();
+  }
 }
